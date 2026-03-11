@@ -1,0 +1,10 @@
+FROM debian:bookworm-slim
+
+RUN dpkg --add-architecture arm64 && \
+    apt-get update && apt-get install -y \
+    gcc-aarch64-linux-gnu \
+    make \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV CROSS_PREFIX=aarch64-linux-gnu-
+WORKDIR /build

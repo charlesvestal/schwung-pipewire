@@ -1,0 +1,22 @@
+FROM --platform=linux/arm64 debian:sid-slim
+
+# Install PipeWire and dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    pipewire \
+    pipewire-alsa \
+    pipewire-jack \
+    wireplumber \
+    libspa-0.2-modules \
+    dbus \
+    procps \
+    && rm -rf /var/lib/apt/lists/*
+
+# Strip documentation to save space (~120MB target)
+RUN rm -rf /usr/share/doc /usr/share/man /usr/share/locale /usr/share/info \
+    /usr/share/lintian /usr/share/bug
+
+# Create required runtime directories
+RUN mkdir -p /run/dbus /tmp
+
+# Default PipeWire config directory for our bridge configs
+RUN mkdir -p /etc/pipewire/pipewire.conf.d
