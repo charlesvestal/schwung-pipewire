@@ -1,0 +1,69 @@
+FROM --platform=linux/arm64 debian:sid-slim
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install XFCE desktop, VNC server, PipeWire, and essentials
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    xfce4 \
+    xfce4-terminal \
+    dbus-x11 \
+    tigervnc-standalone-server \
+    tigervnc-tools \
+    pipewire \
+    pipewire-pulse \
+    pipewire-alsa \
+    pipewire-jack \
+    wireplumber \
+    libspa-0.2-modules \
+    dbus \
+    procps \
+    sudo \
+    alsa-utils \
+    mpg321 \
+    pavucontrol \
+    net-tools \
+    curl \
+    nano \
+    falkon \
+    && rm -rf /var/lib/apt/lists/*
+
+# Strip heavy docs to save space
+RUN rm -rf /usr/share/doc /usr/share/man /usr/share/locale /usr/share/info \
+    /usr/share/lintian /usr/share/bug
+
+# Create non-root user move/everything
+RUN useradd -m -s /bin/bash -G audio,video,sudo move \
+    && echo "move:everything" | chpasswd \
+    && echo "move ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/move
+
+# PipeWire environment for Move bridge
+RUN mkdir -p /etc/pipewire/pipewire.conf.d /run/dbus /tmp /run/user/1000 \
+    && chown move:move /run/user/1000 \
+    && chmod 700 /run/user/1000
+
+# Disable PipeWire RT scheduling — Move's audio engine runs SCHED_FIFO at prio 70,
+# and PipeWire competing for RT budget causes the kernel to SIGKILL audio clients.
+# The DSP plugin handles real-time output; PipeWire just needs normal scheduling.
+RUN printf 'context.modules = [\n    { name = libpipewire-module-rt\n      args = {\n          nice.level = 0\n          rt.prio = 0\n      }\n      flags = [ ifexists nofail ]\n    }\n]\n' > /etc/pipewire/pipewire.conf.d/no-rt.conf
+
+# Hostname resolution (prevents "Could not acquire fully qualified host name")
+RUN echo "move" > /etc/hostname \
+    && echo "127.0.0.1 localhost move" > /etc/hosts
+
+# Profile for PipeWire and display environment
+# PipeWire runs as move user, so XDG_RUNTIME_DIR is all that's needed
+# dbus-env is written by xstartup so SSH sessions can reach the session bus
+RUN printf 'export XDG_RUNTIME_DIR=/tmp/pw-runtime-1\nexport DISPLAY=${DISPLAY:-:1}\nif [ -f /run/user/1000/dbus-env ]; then\n    . /run/user/1000/dbus-env\nfi\n' > /etc/profile.d/pipewire.sh
+
+# VNC xstartup for move user (password set by start-vnc.sh on first run)
+# Both .vnc and .config/tigervnc needed (tigervnc migrates on first run)
+# Starts session dbus, pipewire-pulse (PulseAudio compat), and xdg-desktop-portal
+RUN mkdir -p /home/move/.vnc /home/move/.config/tigervnc \
+    && printf '#!/bin/sh\nunset SESSION_MANAGER\nunset DBUS_SESSION_BUS_ADDRESS\nexport XDG_RUNTIME_DIR=/tmp/pw-runtime-1\n\neval $(dbus-launch --sh-syntax)\necho "export DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS" > /run/user/1000/dbus-env\n\npipewire-pulse &\n/usr/libexec/xdg-desktop-portal &\n\nexec startxfce4\n' > /home/move/.vnc/xstartup \
+    && chmod +x /home/move/.vnc/xstartup \
+    && cp /home/move/.vnc/xstartup /home/move/.config/tigervnc/xstartup \
+    && chown -R move:move /home/move/.vnc /home/move/.config/tigervnc
+
+# VNC config: default geometry, allow remote connections
+RUN mkdir -p /etc/tigervnc \
+    && printf '$geometry = "1920x1080";\n$depth = 24;\n$localhost = "no";\n$SecurityTypes = "VncAuth";\n' > /etc/tigervnc/vncserver-config-defaults

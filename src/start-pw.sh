@@ -17,16 +17,18 @@ if [ ! -d "$CHROOT/usr" ]; then
     exit 1
 fi
 
-# Create PID tracking directory
+# Create PID tracking directory (writable by move user who runs PipeWire)
 mkdir -p "$PID_DIR"
+chmod 777 "$PID_DIR"
 
 # Bind-mount system filesystems (skip if already mounted)
-for fs in proc sys dev tmp; do
+for fs in proc sys dev dev/pts tmp; do
     case "$fs" in
-        proc) mountpoint -q "$CHROOT/proc" 2>/dev/null || mount -t proc proc "$CHROOT/proc" ;;
-        sys)  mountpoint -q "$CHROOT/sys"  2>/dev/null || mount -t sysfs sys "$CHROOT/sys" ;;
-        dev)  mountpoint -q "$CHROOT/dev"  2>/dev/null || mount --bind /dev "$CHROOT/dev" ;;
-        tmp)  mountpoint -q "$CHROOT/tmp"  2>/dev/null || mount --bind /tmp "$CHROOT/tmp" ;;
+        proc)    mountpoint -q "$CHROOT/proc"    2>/dev/null || mount -t proc proc "$CHROOT/proc" ;;
+        sys)     mountpoint -q "$CHROOT/sys"     2>/dev/null || mount -t sysfs sys "$CHROOT/sys" ;;
+        dev)     mountpoint -q "$CHROOT/dev"     2>/dev/null || mount --bind /dev "$CHROOT/dev" ;;
+        dev/pts) mountpoint -q "$CHROOT/dev/pts" 2>/dev/null || mount --bind /dev/pts "$CHROOT/dev/pts" ;;
+        tmp)     mountpoint -q "$CHROOT/tmp"     2>/dev/null || mount --bind /tmp "$CHROOT/tmp" ;;
     esac
 done
 
@@ -47,10 +49,15 @@ context.modules = [
 ]
 PWEOF
 
-# Set up XDG_RUNTIME_DIR (PipeWire needs this for its socket)
+# Set up XDG_RUNTIME_DIR owned by move user (uid 1000)
+# PipeWire runs as move so VNC desktop apps can connect natively
 RUNTIME_DIR="/tmp/pw-runtime-${SLOT}"
 mkdir -p "$CHROOT/$RUNTIME_DIR"
+chown 1000:1000 "$CHROOT/$RUNTIME_DIR"
 chmod 700 "$CHROOT/$RUNTIME_DIR"
+
+# Make FIFO writable by move user
+chmod 666 "$FIFO_PLAYBACK" 2>/dev/null
 
 # Launch everything in a single backgrounded subshell so we return immediately
 (
@@ -64,8 +71,8 @@ chmod 700 "$CHROOT/$RUNTIME_DIR"
         fi
     "
 
-    # Start PipeWire (nohup + & to fully detach)
-    chroot "$CHROOT" sh -c "
+    # Start PipeWire as move user (uid 1000) so VNC desktop apps can connect
+    chroot "$CHROOT" su - move -c "
         export XDG_RUNTIME_DIR=$RUNTIME_DIR
         export DBUS_SESSION_BUS_ADDRESS=unix:path=${RUNTIME_DIR}/dbus-pw
         nohup /usr/bin/pipewire >/dev/null 2>&1 &
@@ -73,10 +80,10 @@ chmod 700 "$CHROOT/$RUNTIME_DIR"
     "
 
     # Brief pause for PipeWire to initialize
-    sleep 1
+    sleep 2
 
-    # Start WirePlumber (nohup + & to fully detach)
-    chroot "$CHROOT" sh -c "
+    # Start WirePlumber as move user
+    chroot "$CHROOT" su - move -c "
         export XDG_RUNTIME_DIR=$RUNTIME_DIR
         export DBUS_SESSION_BUS_ADDRESS=unix:path=${RUNTIME_DIR}/dbus-pw
         nohup /usr/bin/wireplumber >/dev/null 2>&1 &

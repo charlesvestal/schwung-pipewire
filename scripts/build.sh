@@ -39,9 +39,12 @@ echo "=== Cross-compiling pw-helper ==="
 echo "=== Assembling module package ==="
 cp src/module.json  build/module/
 cp src/ui.js        build/module/
-cp src/start-pw.sh  build/module/
-cp src/stop-pw.sh   build/module/
-chmod +x build/module/start-pw.sh build/module/stop-pw.sh
+cp src/start-pw.sh     build/module/
+cp src/stop-pw.sh      build/module/
+cp src/mount-chroot.sh build/module/
+cp src/start-vnc.sh    build/module/
+chmod +x build/module/start-pw.sh build/module/stop-pw.sh \
+         build/module/mount-chroot.sh build/module/start-vnc.sh
 
 # ── Package ──
 mkdir -p dist
