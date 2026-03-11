@@ -1,4 +1,4 @@
-# move-anything-pipewire
+# move-everything-pipewire
 
 A [Move Everything](https://github.com/charlesvestal/move-anything) sound generator module that bridges PipeWire audio to the Ableton Move. Run any ALSA or JACK app inside a Debian chroot and hear it through Move's speakers.
 
