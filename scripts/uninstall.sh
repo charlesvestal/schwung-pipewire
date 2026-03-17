@@ -15,7 +15,7 @@ echo ""
 
 # ── Stop any running PipeWire processes ──
 echo "--- Stopping PipeWire processes ---"
-ssh "$ROOT_SSH" "pkill -f 'pipewire' 2>/dev/null || true; pkill -f 'midi-bridge' 2>/dev/null || true"
+ssh "$ROOT_SSH" "pkill -x pipewire 2>/dev/null; pkill -x wireplumber 2>/dev/null; pkill -x midi-bridge 2>/dev/null; true"
 
 # ── Unmount chroot bind mounts if active ──
 echo "--- Cleaning up chroot mounts ---"
