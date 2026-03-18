@@ -319,3 +319,11 @@ chroot /data/UserData/pw-chroot su - move
 ## MIDI Specs
 
 Bidirectional MIDI over FIFOs with 2-byte little-endian length-prefixed framing. Supports all MIDI messages including SysEx (up to 65535 bytes per message). Non-blocking I/O with accumulation buffers for partial reads. JACK MIDI ports appear as "Move MIDI In" and "Move MIDI Out" in the chroot.
+
+
+## AI Assistance Disclaimer
+
+This module is part of Move Everything and was developed with AI assistance, including Claude, Codex, and other AI assistants.
+
+All architecture, implementation, and release decisions are reviewed by human maintainers.
+AI-assisted content may still contain errors, so please validate functionality, security, and license compatibility before production use.
