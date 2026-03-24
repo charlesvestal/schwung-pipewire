@@ -6,7 +6,7 @@ REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 MODULE_ID="pipewire"
 # Replace move.local with your device's IP address if mDNS is not available
 DEVICE_HOST="${DEVICE_HOST:-move.local}"
-REMOTE_MODULE="/data/UserData/move-anything/modules/sound_generators/$MODULE_ID"
+REMOTE_MODULE="/data/UserData/schwung/modules/sound_generators/$MODULE_ID"
 REMOTE_CHROOT="/data/UserData/pw-chroot"
 MODULE_TAR="$REPO_ROOT/dist/pipewire-module.tar.gz"
 ROOTFS_TAR="$REPO_ROOT/dist/pw-chroot.tar.gz"
@@ -35,10 +35,10 @@ ssh "$USER_SSH" "chmod +x $REMOTE_MODULE/start-pw.sh $REMOTE_MODULE/stop-pw.sh"
 if ssh "$USER_SSH" "[ -f $REMOTE_MODULE/bin/pw-helper ]" 2>/dev/null; then
     echo ""
     echo "--- Installing pw-helper (setuid root) ---"
-    ssh "$ROOT_SSH" "mkdir -p /data/UserData/move-anything/bin"
-    ssh "$ROOT_SSH" "cp $REMOTE_MODULE/bin/pw-helper /data/UserData/move-anything/bin/pw-helper"
-    ssh "$ROOT_SSH" "chown root:root /data/UserData/move-anything/bin/pw-helper && chmod 4755 /data/UserData/move-anything/bin/pw-helper"
-    echo "pw-helper installed at /data/UserData/move-anything/bin/pw-helper"
+    ssh "$ROOT_SSH" "mkdir -p /data/UserData/schwung/bin"
+    ssh "$ROOT_SSH" "cp $REMOTE_MODULE/bin/pw-helper /data/UserData/schwung/bin/pw-helper"
+    ssh "$ROOT_SSH" "chown root:root /data/UserData/schwung/bin/pw-helper && chmod 4755 /data/UserData/schwung/bin/pw-helper"
+    echo "pw-helper installed at /data/UserData/schwung/bin/pw-helper"
 fi
 
 # ── Install rootfs (prefer desktop if available, fall back to minimal) ──
